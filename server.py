@@ -6,18 +6,36 @@ import logging
 
 logging.basicConfig( filename = '/server/logs/server.log',level = logging.DEBUG,format = '%(asctime)s - %(levelname)s: %(message)s',datefmt = '%m/%d/%Y %I:%M:%S %p' )
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)         # Create a socket object
 host = ''
 port = 5000                # Reserve a port for your service.
 logging.info(port)
-s.bind((host,port))        # Bind to the port
-s.listen(1)                 # Now wait for client connection.
 
 while True:
-    c, addr = s.accept()     # Establish connection with client.
-    logging.warning("Connected to {0}".format(addr))
-    
-    humidity, temperature = Adafruit_DHT.read_retry(11,4,delay_seconds=5)
-    var = str(temperature)+"/"+str(humidity)
-    c.send(var)
-    time.sleep(5)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)         # Create a socket object
+        s.bind((host,port))      # Bind to the port
+        s.listen(1)              # Now wait for client connection.
+        c, addr = s.accept()     # Establish connection with client.
+        c.send("Accepted\n")
+        client_name = c.recv(1024)
+        logging.warning("Connected to {0} {1}".format(client_name[:-1],addr))
+
+        while True:
+            humidity, temperature = Adafruit_DHT.read_retry(11,4,delay_seconds=5)
+            if humidity > 100:
+                humidity = "-"
+                temperature = "-"
+            var = str(temperature)+"/"+str(humidity)+"\n"
+            c.send(var)
+            ack = c.recv(1024)
+            if ack!="ack": break
+            time.sleep(5)
+
+        logging.warning("Disconnected {0} {1}".format(client_name[:-1],addr))
+        s.close()
+        time.sleep(10)
+        
+    except socket.error as msg:
+        s.close()
+        logging.error(msg)
+        time.sleep(10)
