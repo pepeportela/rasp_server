@@ -8,16 +8,21 @@ logging.basicConfig( filename = '/server/logs/server.log',level = logging.DEBUG,
 
 host = ''
 port = 5000                # Reserve a port for your service.
-logging.info(port)
+logging.info("Restarted")
 
 while True:
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)         # Create a socket object
         s.bind((host,port))      # Bind to the port
-        s.listen(1)              # Now wait for client connection.
+        s.listen(2)              # Now wait for client connection.
+        logging.info("Listening in {0}".format(port))
         c, addr = s.accept()     # Establish connection with client.
         c.send("Accepted\n")
         client_name = c.recv(1024)
+        if client_name[:-1] != "Movil Pepe":
+            logging.error("Connection try from {0} {1}".format(client_name[:-1],addr))
+            s.close()
+            break
         logging.warning("Connected to {0} {1}".format(client_name[:-1],addr))
 
         while True:
@@ -38,4 +43,4 @@ while True:
     except socket.error as msg:
         s.close()
         logging.error(msg)
-        time.sleep(10)
+        time.sleep(60)
